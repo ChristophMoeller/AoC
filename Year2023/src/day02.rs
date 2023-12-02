@@ -14,7 +14,7 @@ pub struct Round {
     green: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Game {
     id: u32,
     rounds: Vec<Round>,
@@ -78,6 +78,7 @@ mod parsing {
         sequence::separated_pair,
         *,
     };
+    use regex::Regex;
 
     fn color(input: &str) -> IResult<&str, (u32, Color)> {
         separated_pair(
@@ -128,6 +129,49 @@ mod parsing {
 
     pub fn parse(input: &str) -> IResult<&str, Vec<Game>> {
         separated_list1(line_ending, game)(input)
+    }
+
+    // Alternative solution using regular expressions
+    #[allow(dead_code)]
+    pub fn parse_with_regex(input: &str) -> Vec<Game> {
+        let re_game = Regex::new(r"Game (?<id>\d+):(?<data>.*)").unwrap();
+        let re_round = Regex::new(r"\ ([^;]*);?").unwrap();
+        let re_color = Regex::new(r"(\d+) (red|green|blue)").unwrap();
+
+        let mut res = Vec::new();
+        for line in input.lines() {
+            let c_game = re_game.captures(line).unwrap();
+            let id = str::parse::<u32>(&c_game["id"]).unwrap();
+            let data = &c_game["data"];
+
+            let mut game = Game {
+                id,
+                ..Default::default()
+            };
+
+            for (_, [c_round]) in re_round.captures_iter(data).map(|c| c.extract()) {
+                let mut round = Round::default();
+                for (_, [c_amount, c_color]) in re_color.captures_iter(c_round).map(|c| c.extract())
+                {
+                    let amount = c_amount.parse::<u32>().unwrap();
+                    match c_color {
+                        "red" => {
+                            round.red = amount;
+                        }
+                        "green" => {
+                            round.green = amount;
+                        }
+                        "blue" => {
+                            round.blue = amount;
+                        }
+                        _ => {}
+                    }
+                }
+                game.rounds.push(round);
+            }
+            res.push(game);
+        }
+        res
     }
 }
 
