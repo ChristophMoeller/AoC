@@ -88,4 +88,10 @@ macro_rules! gen_test {
     };
 }
 
-gen_solve!((1, day01, Day01));
+gen_solve!(
+    (1, day01, Day01),
+    (2, day02, Day02),
+    (3, day03, Day03),
+    (4, day04, Day04),
+    (5, day05, Day05)
+);
