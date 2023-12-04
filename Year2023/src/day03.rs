@@ -1,4 +1,5 @@
 use super::*;
+use crate::utils::Grid;
 
 // DISCLAIMER :D
 // The current version of this solution was done at 6am.
@@ -29,130 +30,78 @@ impl Entry {
 
 pub struct Day03;
 impl Solution for Day03 {
-    type Input<'a> = Vec<Vec<Entry>>;
+    type Input<'a> = Grid<Entry>;
 
     fn parse<'a>(content: &'a str) -> Self::Input<'a> {
         parsing::parse(content)
     }
 
-    fn part_a<'a>(input: &Self::Input<'a>) -> String {
+    fn part_a<'a>(grid: &Self::Input<'a>) -> String {
         let mut current = 0;
         let mut next_to_symbol = false;
         let mut sum = 0;
 
-        fn is_symbol(input: &Vec<Vec<Entry>>, r: isize, c: isize) -> bool {
-            if r < 0 || c < 0 || r as usize >= input.len() || c as usize >= input[r as usize].len()
-            {
-                return false;
+        for ((x, y), e) in grid {
+            if x == 0 || !e.is_digit() {
+                if next_to_symbol {
+                    sum += current;
+                }
+                current = 0;
+                next_to_symbol = false;
             }
-            let r = r as usize;
-            let c = c as usize;
-            input[r][c].is_symbol()
-        }
-
-        for (r, row) in input.iter().enumerate() {
-            for (c, &entry) in row.iter().enumerate() {
-                let r = r as isize;
-                let c = c as isize;
-                match entry {
-                    Entry::Digit(d) => {
-                        current = current * 10 + d;
-                        if is_symbol(input, r - 1, c - 1)
-                            || is_symbol(input, r - 1, c)
-                            || is_symbol(input, r - 1, c + 1)
-                            || is_symbol(input, r, c - 1)
-                            || is_symbol(input, r, c)
-                            || is_symbol(input, r, c + 1)
-                            || is_symbol(input, r + 1, c - 1)
-                            || is_symbol(input, r + 1, c)
-                            || is_symbol(input, r + 1, c + 1)
-                        {
-                            next_to_symbol = true;
-                        }
-                    }
-                    _ => {
-                        if next_to_symbol {
-                            sum += current;
-                        }
-                        current = 0;
-                        next_to_symbol = false;
-                    }
+            if let Entry::Digit(d) = e {
+                current = current * 10 + d;
+                if grid.neighbors8(x, y).any(|(_, e)| e.is_symbol()) {
+                    next_to_symbol = true;
                 }
             }
-            if next_to_symbol {
-                sum += current;
-            }
-            current = 0;
-            next_to_symbol = false;
         }
 
         format!("{:#?}", sum)
     }
 
-    fn part_b<'a>(input: &Self::Input<'a>) -> String {
+    fn part_b<'a>(grid: &Self::Input<'a>) -> String {
         fn find_number(
-            input: &Vec<Vec<Entry>>,
-            r: isize,
-            c: isize,
-        ) -> Option<((usize, usize), u32)> {
-            if r < 0 || c < 0 || r as usize >= input.len() || c as usize >= input[r as usize].len()
-            {
-                return None;
-            }
-            let r = r as usize;
-            let mut c = c as usize;
+            grid: &Grid<Entry>,
+            mut x: isize,
+            y: isize,
+        ) -> Option<((isize, isize), u32)> {
+            let e = &grid.get(x, y)?;
 
-            if !input[r][c].is_digit() {
+            if !e.is_digit() {
                 return None;
             }
 
-            while c > 0 && input[r][c - 1].is_digit() {
-                c -= 1;
+            while &grid.get(x - 1, y).map(Entry::is_digit) == &Some(true) {
+                x -= 1;
             }
 
-            let start = (r, c);
-            let mut current = 0;
-            while let Entry::Digit(d) = input[r][c] {
-                current = current * 10 + d;
-                c += 1;
-                if c >= input[r].len() {
-                    break;
-                }
+            let start = (x, y);
+            let mut value = 0;
+            while let Some(&Entry::Digit(d)) = grid.get(x, y) {
+                value = value * 10 + d;
+                x += 1;
             }
 
-            return Some((start, current));
+            Some((start, value))
         }
 
-        let sum = input
-            .iter()
-            .enumerate()
-            .flat_map(|(r, row)| std::iter::repeat(r).zip(row.iter().enumerate()))
-            .filter_map(|(r, (c, &e))| {
-                if e == Entry::Symbol('*') {
-                    Some((r, c))
+        let sum = grid
+            .into_iter()
+            .filter_map(|((x, y), e)| {
+                if e == &Entry::Symbol('*') {
+                    Some((x, y))
                 } else {
                     None
                 }
             })
-            .filter_map(|(r, c)| {
-                let r = r as isize;
-                let c = c as isize;
-                let neighbors = [
-                    (r - 1, c - 1),
-                    (r - 1, c),
-                    (r - 1, c + 1),
-                    (r, c - 1),
-                    (r, c + 1),
-                    (r + 1, c - 1),
-                    (r + 1, c),
-                    (r + 1, c + 1),
-                ];
-                let mut last_element = (usize::MAX, usize::MAX);
+            .filter_map(|(x, y)| {
+                let mut last_element = (isize::MAX, isize::MAX);
                 let mut counter = 0;
                 let mut product = 1;
-                for (start, value) in neighbors
-                    .iter()
-                    .filter_map(|(r, c)| find_number(input, *r, *c))
+                for (start, value) in grid
+                    .neighbors8(x, y)
+                    .filter_map(|((x, y), _)| find_number(grid, x, y))
                 {
                     if last_element != start {
                         last_element = start;
@@ -174,24 +123,18 @@ impl Solution for Day03 {
 
 mod parsing {
     use super::Entry;
+    use crate::utils::Grid;
 
-    pub fn parse(input: &str) -> Vec<Vec<Entry>> {
-        input
-            .lines()
-            .map(|line| {
-                line.chars()
-                    .map(|c| {
-                        if c.is_digit(10) {
-                            Entry::Digit(c.to_digit(10).unwrap())
-                        } else if c != '.' {
-                            Entry::Symbol(c)
-                        } else {
-                            Entry::None
-                        }
-                    })
-                    .collect()
-            })
-            .collect()
+    pub fn parse(input: &str) -> Grid<Entry> {
+        Grid::parse(input, |c| {
+            if c.is_digit(10) {
+                Entry::Digit(c.to_digit(10).unwrap())
+            } else if c != '.' {
+                Entry::Symbol(c)
+            } else {
+                Entry::None
+            }
+        })
     }
 }
 

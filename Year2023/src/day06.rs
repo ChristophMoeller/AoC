@@ -1,7 +1,7 @@
 use super::*;
 
-pub struct Day05;
-impl Solution for Day05 {
+pub struct Day06;
+impl Solution for Day06 {
     type Input<'a> = ();
 
     fn parse<'a>(content: &'a str) -> Self::Input<'a> {
@@ -25,5 +25,5 @@ mod parsing {
     }
 }
 
-// gen_test!(a, Day05, r"", "");
-// gen_test!(b, Day05, r"", "");
+// gen_test!(a, Day06, r"", "");
+// gen_test!(b, Day06, r"", "");

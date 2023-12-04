@@ -1,3 +1,5 @@
+pub mod utils;
+
 #[derive(Clone, Copy, Debug)]
 enum Part {
     A,
@@ -89,9 +91,16 @@ macro_rules! gen_test {
 }
 
 gen_solve!(
-    (1, day01, Day01),
-    (2, day02, Day02),
-    (3, day03, Day03),
-    (4, day04, Day04),
-    (5, day05, Day05)
+    (01, day01, Day01),
+    (02, day02, Day02),
+    (03, day03, Day03),
+    (04, day04, Day04),
+    (05, day05, Day05),
+    (06, day06, Day06),
+    (07, day07, Day07),
+    (08, day08, Day08),
+    (09, day09, Day09),
+    (10, day10, Day10),
+    (11, day11, Day11),
+    (12, day12, Day12)
 );
