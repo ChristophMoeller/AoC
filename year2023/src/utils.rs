@@ -5,6 +5,18 @@ pub struct Grid<T> {
     wrapping: bool,
 }
 
+impl<T: std::fmt::Display> std::fmt::Display for Grid<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in &self.entries {
+            for x in row {
+                write!(f, "{}", x)?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
 impl<T> Grid<T> {
     pub fn set_wrapping(&mut self, wrapping: bool) {
         self.wrapping = wrapping;

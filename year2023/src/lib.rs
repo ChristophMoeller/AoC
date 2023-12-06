@@ -1,3 +1,4 @@
+pub mod fun;
 pub mod utils;
 
 #[derive(Clone, Copy, Debug)]

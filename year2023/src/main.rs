@@ -24,4 +24,20 @@ fn main() {
     }
 
     year2023::solve(args.day, args.solve_a, args.solve_b);
+
+    //     let mut game = year2023::fun::GameOfLife::new(
+    //         r"..x...
+    // ...x..
+    // .xxx..
+    // ......
+    // ......
+    // ......",
+    //     );
+
+    //     println!("{game}");
+    //     for _ in 0..100 {
+    //         game.step();
+    //         println!("{game}");
+    //         std::thread::sleep(std::time::Duration::from_millis(100));
+    //     }
 }
