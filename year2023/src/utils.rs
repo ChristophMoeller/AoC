@@ -139,7 +139,7 @@ impl<T> std::ops::IndexMut<(isize, isize)> for Grid<T> {
         if self.wrapping {
             self.get_wrapped_mut(x, y)
         } else {
-            &mut self.entries[x as usize][y as usize]
+            &mut self.entries[y as usize][x as usize]
         }
     }
 }
