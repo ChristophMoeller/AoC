@@ -103,5 +103,18 @@ gen_solve!(
     (09, day09, Day09),
     (10, day10, Day10),
     (11, day11, Day11),
-    (12, day12, Day12)
+    (12, day12, Day12),
+    (13, day13, Day13),
+    (14, day14, Day14),
+    (15, day15, Day15),
+    (16, day16, Day16),
+    (17, day17, Day17),
+    (18, day18, Day18),
+    (19, day19, Day19),
+    (20, day20, Day20),
+    (21, day21, Day21),
+    (22, day22, Day22),
+    (23, day23, Day23),
+    (24, day24, Day24),
+    (25, day25, Day25)
 );
