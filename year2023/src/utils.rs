@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Grid<T> {
     entries: Vec<Vec<T>>,
     width: isize,
