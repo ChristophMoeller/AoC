@@ -19,6 +19,22 @@ impl<T: std::fmt::Display> std::fmt::Display for Grid<T> {
 }
 
 impl<T> Grid<T> {
+    pub fn new<F>(width: usize, height: usize, mut init: F) -> Self
+    where
+        F: FnMut(isize, isize) -> T,
+    {
+        let width = width as isize;
+        let height = height as isize;
+        let entries =
+            Vec::from_iter((0..height).map(|y| Vec::from_iter((0..width).map(|x| init(x, y)))));
+        Self {
+            entries,
+            width,
+            height,
+            wrapping: false,
+        }
+    }
+
     pub fn set_wrapping(&mut self, wrapping: bool) {
         self.wrapping = wrapping;
     }
