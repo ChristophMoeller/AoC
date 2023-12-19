@@ -10,15 +10,15 @@ enum Category {
     Shiny,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct Part {
-    extremely_cool_looking: u32,
-    musical: u32,
-    aerodynamic: u32,
-    shiny: u32,
+impl Category {
+    fn index(&self) -> usize {
+        *self as usize
+    }
 }
 
-#[derive(Clone, Copy, Debug)]
+type Part = [u32; 4];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ConditionOperator {
     Less,
     Greater,
@@ -44,12 +44,7 @@ struct Condition {
 impl Condition {
     #[inline(always)]
     fn check(&self, part: &Part) -> bool {
-        match self.category {
-            Category::ExtremelyCoolLooking => self.op.check(part.extremely_cool_looking, self.v),
-            Category::Musical => self.op.check(part.musical, self.v),
-            Category::Aerodynamic => self.op.check(part.aerodynamic, self.v),
-            Category::Shiny => self.op.check(part.shiny, self.v),
-        }
+        self.op.check(part[self.category.index()], self.v)
     }
 }
 
@@ -58,6 +53,8 @@ pub struct Workflow<'a> {
     tests: Vec<(Condition, &'a str)>,
     otherwise: &'a str,
 }
+
+type Interval = [RangeInclusive<u32>; 4];
 
 impl<'a> Workflow<'a> {
     fn apply_to_part(&self, part: &Part) -> &'a str {
@@ -70,130 +67,33 @@ impl<'a> Workflow<'a> {
         self.otherwise
     }
 
-    fn apply_to_intervals(
-        &self,
-        (mut x, mut m, mut a, mut s): (
-            RangeInclusive<u32>,
-            RangeInclusive<u32>,
-            RangeInclusive<u32>,
-            RangeInclusive<u32>,
-        ),
-    ) -> Vec<(
-        (
-            RangeInclusive<u32>,
-            RangeInclusive<u32>,
-            RangeInclusive<u32>,
-            RangeInclusive<u32>,
-        ),
-        &'a str,
-    )> {
+    fn apply_to_intervals(&self, mut int: Interval) -> Vec<(Interval, &'a str)> {
         let mut res = Vec::new();
 
         for (con, w) in &self.tests {
-            let lower_check = con.check(&Part {
-                extremely_cool_looking: *x.start(),
-                musical: *m.start(),
-                aerodynamic: *a.start(),
-                shiny: *s.start(),
-            });
-            let upper_check = con.check(&Part {
-                extremely_cool_looking: *x.end(),
-                musical: *m.end(),
-                aerodynamic: *a.end(),
-                shiny: *s.end(),
-            });
+            if int[con.category.index()].contains(&con.v) {
+                let mut lower = int.clone();
+                let mut upper = int.clone();
 
-            let (lower_offset, upper_offset) = match con.op {
-                ConditionOperator::Less => (1, 0),
-                ConditionOperator::Greater => (0, 1),
-            };
-
-            let (mut lower, mut upper) = match con.category {
-                Category::ExtremelyCoolLooking => (
-                    (
-                        *x.start()..=(con.v - lower_offset),
-                        m.clone(),
-                        a.clone(),
-                        s.clone(),
-                    ),
-                    (
-                        (con.v + upper_offset)..=*x.end(),
-                        m.clone(),
-                        a.clone(),
-                        s.clone(),
-                    ),
-                ),
-                Category::Musical => (
-                    (
-                        x.clone(),
-                        *m.start()..=(con.v - lower_offset),
-                        a.clone(),
-                        s.clone(),
-                    ),
-                    (
-                        x.clone(),
-                        (con.v + upper_offset)..=*m.end(),
-                        a.clone(),
-                        s.clone(),
-                    ),
-                ),
-                Category::Aerodynamic => (
-                    (
-                        x.clone(),
-                        m.clone(),
-                        *a.start()..=(con.v - lower_offset),
-                        s.clone(),
-                    ),
-                    (
-                        x.clone(),
-                        m.clone(),
-                        (con.v + upper_offset)..=*a.end(),
-                        s.clone(),
-                    ),
-                ),
-                Category::Shiny => (
-                    (
-                        x.clone(),
-                        m.clone(),
-                        a.clone(),
-                        *s.start()..=(con.v - lower_offset),
-                    ),
-                    (
-                        x.clone(),
-                        m.clone(),
-                        a.clone(),
-                        (con.v + upper_offset)..=*s.end(),
-                    ),
-                ),
-            };
-
-            lower.0 = *lower.0.start()..=*lower.0.end().min(x.end());
-            lower.1 = *lower.1.start()..=*lower.1.end().min(m.end());
-            lower.2 = *lower.2.start()..=*lower.2.end().min(a.end());
-            lower.3 = *lower.3.start()..=*lower.3.end().min(s.end());
-            upper.0 = *upper.0.start().max(x.start())..=*upper.0.end();
-            upper.1 = *upper.1.start().max(x.start())..=*upper.1.end();
-            upper.2 = *upper.2.start().max(x.start())..=*upper.2.end();
-            upper.3 = *upper.3.start().max(x.start())..=*upper.3.end();
-
-            match (lower_check, upper_check) {
-                (true, true) => {
+                if con.op == ConditionOperator::Less {
+                    lower[con.category.index()] =
+                        *lower[con.category.index()].start()..=(con.v - 1);
+                    upper[con.category.index()] = con.v..=*upper[con.category.index()].end();
                     res.push((lower, *w));
-                    break;
-                }
-                (true, false) => {
-                    res.push((lower, *w));
-                    (x, m, a, s) = upper;
-                }
-                (false, true) => {
+                    int = upper;
+                } else if con.op == ConditionOperator::Greater {
+                    lower[con.category.index()] = *lower[con.category.index()].start()..=con.v;
+                    upper[con.category.index()] = (con.v + 1)..=*upper[con.category.index()].end();
                     res.push((upper, *w));
-                    (x, m, a, s) = lower;
+                    int = lower;
                 }
-                (false, false) => {}
+            } else if con.op.check(*int[con.category.index()].start(), con.v) {
+                res.push((int.clone(), *w));
+                break;
             }
         }
 
-        res.push(((x, m, a, s), self.otherwise));
+        res.push((int, self.otherwise));
 
         res
     }
@@ -223,23 +123,21 @@ impl Solution for Day19 {
 
                 current_workflow == "A"
             })
-            .map(|part| {
-                (part.extremely_cool_looking + part.musical + part.aerodynamic + part.shiny) as u64
-            })
+            .map(|part| part.iter().sum::<u32>() as u64)
             .sum::<u64>();
 
         format!("{}", res)
     }
 
     fn part_b<'a>(input: &Self::Input<'a>) -> String {
-        let mut partition = vec![((1..=4000, 1..=4000, 1..=4000, 1..=4000), "in")];
+        let mut partition = vec![([1..=4000, 1..=4000, 1..=4000, 1..=4000], "in")];
 
         let mut accepted = 0u64;
 
         while let Some((i, w)) = partition.pop() {
             for (i, w) in input.0[w].apply_to_intervals(i) {
                 if w == "A" {
-                    accepted += (i.0.count() * i.1.count() * i.2.count() * i.3.count()) as u64;
+                    accepted += i.iter().map(|a| a.clone().count() as u64).product::<u64>() as u64;
                 } else if w != "R" {
                     partition.push((i, w))
                 }
@@ -292,12 +190,7 @@ mod parsing {
         let res = values
             .into_iter()
             .fold(Default::default(), |mut acc: Part, (c, v)| {
-                match c {
-                    Category::ExtremelyCoolLooking => acc.extremely_cool_looking = v,
-                    Category::Musical => acc.musical = v,
-                    Category::Aerodynamic => acc.aerodynamic = v,
-                    Category::Shiny => acc.shiny = v,
-                };
+                acc[c.index()] = v;
                 acc
             });
 
