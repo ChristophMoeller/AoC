@@ -18,3 +18,8 @@ Cargo.lock
 # Input for each day
 year2023/input
 year2024/input
+year2024_Haskell/input
+
+**/*.hi
+**/*.o
+
