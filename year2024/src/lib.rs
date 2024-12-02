@@ -1,3 +1,4 @@
+pub mod parser;
 pub mod utils;
 
 #[derive(Clone, Copy, Debug)]
@@ -90,4 +91,4 @@ macro_rules! gen_test {
     };
 }
 
-gen_solve!((01, day01, Day01));
+gen_solve!((01, day01, Day01), (02, day02, Day02));
