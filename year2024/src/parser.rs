@@ -38,6 +38,10 @@ pub trait Tokenizer<T: Copy>: Sized {
         }
     }
 
+    fn ignore(self) -> Ignore<Self> {
+        Ignore { t: self }
+    }
+
     fn process<'a>(&self, input: &'a str) -> (Vec<T>, &'a str) {
         let mut buffer = Vec::new();
         let remainder = self.tokenize(input, &mut buffer);
@@ -129,6 +133,19 @@ impl<T: Copy> Tokenizer<T> for Any {
 }
 
 #[derive(Clone)]
+pub struct Ignore<A> {
+    t: A,
+}
+impl<T: Copy, A: Tokenizer<T>> Tokenizer<T> for Ignore<A> {
+    fn tokenize<'a>(&self, input: &'a str, output: &mut Vec<T>) -> &'a str {
+        let start = output.len();
+        let rem = self.t.tokenize(input, output);
+        output.truncate(start);
+        rem
+    }
+}
+
+#[derive(Clone)]
 pub struct Number<T, I, F: Fn(I) -> T, const SIGNED: bool> {
     finalize: F,
     radix: u32,
@@ -207,6 +224,10 @@ pub fn double_linebreak<T>(token: T) -> Tag<T> {
 
 pub fn any() -> Any {
     Any {}
+}
+
+pub fn ignore<T>(token: T) -> Ignore<T> {
+    Ignore { t: token }
 }
 
 pub fn conditional0_pos<T: Copy, C: Fn(usize, char) -> bool, F: Fn(&str) -> T>(
