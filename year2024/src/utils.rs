@@ -257,10 +257,37 @@ impl<'a, T> Iterator for GridNeighborsIter<'a, T> {
     }
 }
 
-impl<T> Grid<T> {
-    pub fn neighbors8(&self, x: isize, y: isize) -> GridNeighborsIter<T> {
-        let mut relevant = 0xFF;
+pub struct GridNeighborPositionsIter {
+    x: isize,
+    y: isize,
+    current: usize,
+    relevant: u8,
+}
 
+impl Iterator for GridNeighborPositionsIter {
+    type Item = (isize, isize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.current < 8 && (self.relevant >> self.current) & 1 == 0 {
+            self.current += 1;
+        }
+
+        if self.current >= 8 {
+            return None;
+        }
+
+        let x = self.x + GRID_NEIGHBOR_ORDER[self.current].0;
+        let y = self.y + GRID_NEIGHBOR_ORDER[self.current].1;
+
+        let res = Some((x, y));
+        self.current += 1;
+        res
+    }
+}
+
+impl<T> Grid<T> {
+    #[inline(always)]
+    fn relevant_neighbors(&self, x: isize, y: isize, mut relevant: u8) -> u8 {
         if !self.wrapping {
             for i in 0..8 {
                 let offset = GRID_NEIGHBOR_ORDER[i];
@@ -268,10 +295,15 @@ impl<T> Grid<T> {
                 let y = y + offset.1;
 
                 if x < 0 || y < 0 || x >= self.width() || y >= self.height() {
-                    relevant = relevant ^ 1 << i;
+                    relevant = relevant & (0xFF ^ 1 << i);
                 }
             }
         }
+        relevant
+    }
+
+    pub fn neighbors8(&self, x: isize, y: isize) -> GridNeighborsIter<T> {
+        let relevant = self.relevant_neighbors(x, y, 0xFF);
 
         GridNeighborsIter {
             grid: self,
@@ -283,28 +315,32 @@ impl<T> Grid<T> {
     }
 
     pub fn neighbors4(&self, x: isize, y: isize) -> GridNeighborsIter<T> {
-        let mut relevant = 0xFF;
-
-        for i in 0..8 {
-            let offset = GRID_NEIGHBOR_ORDER[i];
-
-            if offset.0.abs() + offset.1.abs() == 2 {
-                relevant = relevant ^ 1 << i;
-                continue;
-            }
-
-            let x = x + offset.0;
-            let y = y + offset.1;
-
-            if !self.wrapping {
-                if x < 0 || y < 0 || x >= self.width() || y >= self.height() {
-                    relevant = relevant ^ 1 << i;
-                }
-            }
-        }
+        let relevant = self.relevant_neighbors(x, y, 0b01011010);
 
         GridNeighborsIter {
             grid: self,
+            x,
+            y,
+            current: 0,
+            relevant,
+        }
+    }
+
+    pub fn neighborpos8(&self, x: isize, y: isize) -> GridNeighborPositionsIter {
+        let relevant = self.relevant_neighbors(x, y, 0xFF);
+
+        GridNeighborPositionsIter {
+            x,
+            y,
+            current: 0,
+            relevant,
+        }
+    }
+
+    pub fn neighborpos4(&self, x: isize, y: isize) -> GridNeighborPositionsIter {
+        let relevant = self.relevant_neighbors(x, y, 0b01011010);
+
+        GridNeighborPositionsIter {
             x,
             y,
             current: 0,

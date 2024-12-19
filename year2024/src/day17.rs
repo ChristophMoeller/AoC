@@ -81,16 +81,11 @@ impl Solution for Day17 {
     }
 
     fn part_b<'a>(input: &Self::Input<'a>) -> String {
-        //
-        // Okay, we simply had to reverse engineer the code
-        // Turns out that confusing a literal with a combo can cost you about 2h
-        //     :(
-        //
-        format!("{:?}", rec2(&input.1).iter().min().unwrap())
+        format!("{:?}", reverse(&input.1).iter().min().unwrap())
     }
 }
 
-fn rec2(out: &[u8]) -> Vec<u64> {
+fn reverse(out: &[u8]) -> Vec<u64> {
     if out.len() == 1 {
         let mut res = vec![];
         for i in 0u64..8u64 {
@@ -101,8 +96,7 @@ fn rec2(out: &[u8]) -> Vec<u64> {
         return res;
     }
 
-    let prev = rec2(&out[1..]).iter().map(|&x| x << 3).collect_vec();
-    println!("{}", prev.len());
+    let prev = reverse(&out[1..]).iter().map(|&x| x << 3).collect_vec();
 
     let mut res = vec![];
     for p in prev {
